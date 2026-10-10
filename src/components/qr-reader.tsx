@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, ImagePlus } from "lucide-react";
 import { LinkActions } from "@/components/link-actions";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { imageDataFromSource, readQrFromImageData } from "@/lib/read-qr";
+import { readQrFromFile, readQrFromSource } from "@/lib/read-qr";
 import { parseWifiPayload } from "@/lib/wifi-payload";
 import { previewPathPrefix } from "@/lib/preview-path-prefix";
 import { createShortLink } from "@/lib/short-links";
@@ -68,8 +67,7 @@ export function QrReader({ active, onMakeQr }: { active: boolean; onMakeQr: (val
       if (video && video.readyState >= 2 && video.videoWidth > 0) {
         void (async () => {
           try {
-            const data = imageDataFromSource(video, video.videoWidth, video.videoHeight);
-            const text = await readQrFromImageData(data);
+            const text = await readQrFromSource(video, video.videoWidth, video.videoHeight);
             if (stopped || !text) return;
             setResult(text);
             setShortUrl("");
@@ -79,7 +77,7 @@ export function QrReader({ active, onMakeQr }: { active: boolean; onMakeQr: (val
             stream.getTracks().forEach((track) => track.stop());
             setStream(null);
           } catch {
-            if (!stopped) setError("Could not read the camera image.");
+            // A single camera frame can fail without ending the scan.
           }
         })();
       }
@@ -97,8 +95,12 @@ export function QrReader({ active, onMakeQr }: { active: boolean; onMakeQr: (val
     setResult("");
     setShortUrl("");
     setWifiNote("");
+    if (!window.isSecureContext) {
+      setError("Live camera needs a secure page. Use Take photo instead.");
+      return;
+    }
     if (!navigator.mediaDevices?.getUserMedia) {
-      setError("This browser has no camera. Upload a picture instead.");
+      setError("This browser has no live camera. Use Take photo instead.");
       return;
     }
     try {
@@ -109,7 +111,7 @@ export function QrReader({ active, onMakeQr }: { active: boolean; onMakeQr: (val
       setStream(next);
       setScanning(true);
     } catch {
-      setError("Camera permission was blocked. Upload a picture instead.");
+      setError("Camera permission was blocked. Use Take photo instead.");
     }
   }
 
@@ -119,10 +121,7 @@ export function QrReader({ active, onMakeQr }: { active: boolean; onMakeQr: (val
     setShortUrl("");
     setWifiNote("");
     try {
-      const bitmap = await createImageBitmap(file);
-      const data = imageDataFromSource(bitmap, bitmap.width, bitmap.height);
-      bitmap.close();
-      const text = await readQrFromImageData(data);
+      const text = await readQrFromFile(file);
       if (!text) {
         setResult("");
         setError("No QR code found in that picture.");
@@ -188,33 +187,17 @@ export function QrReader({ active, onMakeQr }: { active: boolean; onMakeQr: (val
 
   return (
     <section className="mx-auto mt-6 w-full max-w-xl rounded-panel border border-border bg-card p-5">
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <Button type="button" className="flex-1" onClick={() => void startCamera()}>
+      <div className="flex flex-col gap-2">
+        <Picker label="Take photo" capture onPick={onFile} />
+        <Picker label="Choose picture" onPick={onFile} />
+        <Button type="button" variant="secondary" onClick={() => void startCamera()}>
           <Camera className="size-4" aria-hidden />
-          {scanning ? "Scanning…" : "Use camera"}
+          {scanning ? "Scanning…" : "Live camera"}
         </Button>
-        <Label
-          htmlFor="qr-picture"
-          className="inline-flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-control border border-border bg-raised px-4 text-sm font-medium text-foreground"
-        >
-          <ImagePlus className="size-4" aria-hidden />
-          Upload picture
-        </Label>
-        <input
-          id="qr-picture"
-          className="sr-only"
-          type="file"
-          accept="image/*"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            event.target.value = "";
-            void onFile(file);
-          }}
-        />
       </div>
 
       {stream ? (
-        <video ref={videoRef} className="mt-4 aspect-square w-full rounded-preview bg-background object-cover" muted playsInline />
+        <video ref={videoRef} className="mt-4 aspect-square w-full rounded-preview bg-background object-cover" muted autoPlay playsInline />
       ) : null}
 
       <p className="mt-4 min-h-6 break-all text-sm text-pretty" role="status">
@@ -275,5 +258,42 @@ export function QrReader({ active, onMakeQr }: { active: boolean; onMakeQr: (val
         </div>
       ) : null}
     </section>
+  );
+}
+
+function Picker({
+  label,
+  capture,
+  onPick,
+}: {
+  label: string;
+  capture?: boolean;
+  onPick: (file: File | undefined) => void;
+}) {
+  return (
+    <div className="relative min-h-11">
+      <div
+        className={
+          capture
+            ? "pointer-events-none inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-control bg-accent px-4 text-sm font-medium text-accent-foreground"
+            : "pointer-events-none inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-control border border-border bg-raised px-4 text-sm font-medium text-foreground"
+        }
+      >
+        <ImagePlus className="size-4" aria-hidden />
+        {label}
+      </div>
+      <input
+        className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+        type="file"
+        accept="image/*"
+        capture={capture ? "environment" : undefined}
+        aria-label={label}
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          onPick(file);
+        }}
+      />
+    </div>
   );
 }
