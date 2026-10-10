@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { generateImage } from "@/lib/imagine";
 import { cn } from "@/lib/utils";
 
 const SHAPES = [
@@ -11,27 +10,84 @@ const SHAPES = [
   { id: "16:9", label: "Landscape" },
 ] as const;
 
+const SUBSCRIBE_URL = "https://puter.com/dashboard#billing";
+
 type Ratio = (typeof SHAPES)[number]["id"];
+type PuterClient = typeof import("@heyputer/puter.js").puter;
+
+function detail(error: unknown) {
+  if (error instanceof Error) return { code: "", message: error.message };
+  if (!error || typeof error !== "object") return { code: "", message: "Could not create the image. Try again." };
+  const record = error as {
+    message?: unknown;
+    code?: unknown;
+    status?: unknown;
+    error?: unknown;
+  };
+  const nested = record.error && typeof record.error === "object" ? (record.error as { message?: unknown; code?: unknown; status?: unknown }) : {};
+  const code = [record.code, record.error, nested.code].find((item) => typeof item === "string") as string | undefined;
+  const message = [record.message, nested.message].find((item) => typeof item === "string" && item.trim()) as string | undefined;
+  const status = typeof record.status === "number" ? record.status : typeof nested.status === "number" ? nested.status : undefined;
+  return {
+    code: code ?? "",
+    message: message || (status ? `Request failed (${status}).` : "Could not create the image. Try again."),
+  };
+}
+
+function isSubscribeError(error: unknown, code: string, message: string) {
+  return /insufficient_funds|subscription_required|usage_limited|quota|allowance/i.test(`${code} ${message}`) || (error && typeof error === "object" && "status" in error && (error as { status?: unknown }).status === 402);
+}
 
 export function TextImageTool() {
+  const puterRef = useRef<PuterClient | null>(null);
+  const [ready, setReady] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [ratio, setRatio] = useState<Ratio>("1:1");
   const [src, setSrc] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [subscribe, setSubscribe] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    let cancelled = false;
+    void import("@heyputer/puter.js").then((mod) => {
+      if (cancelled) return;
+      puterRef.current = mod.puter;
+      setReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   async function create() {
+    const puter = puterRef.current;
+    if (!puter) return;
     setBusy(true);
     setError("");
+    setSubscribe(false);
     try {
-      const result = await generateImage({ data: { prompt, ratio } });
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      if (!puter.auth.isSignedIn()) {
+        await puter.auth.signIn({ attempt_temp_user_creation: true });
       }
-      setSrc(result.src);
+      const image = await puter.ai.txt2img(prompt.trim(), {
+        model: "@cf/black-forest-labs/flux-1-schnell",
+        provider: "cloudflare",
+        aspect_ratio: ratio,
+      });
+      const next = image.currentSrc || image.src;
+      if (!next) throw new Error("The image came back empty. Try again.");
+      setSrc(next);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not create the image. Try again.");
+      const info = detail(caught);
+      if (isSubscribeError(caught, info.code, info.message)) {
+        setSubscribe(true);
+        setError("Your free Puter allowance is used up. Subscribe to keep making images.");
+      } else if (/popup_blocked|auth_window_closed|unauthorized|401/i.test(`${info.code} ${info.message}`)) {
+        setError("Sign in to Puter in the window that opens. Free images use that account.");
+      } else {
+        setError(info.message);
+      }
     } finally {
       setBusy(false);
     }
@@ -41,7 +97,7 @@ export function TextImageTool() {
     if (!src) return;
     const link = document.createElement("a");
     link.href = src;
-    link.download = src.startsWith("data:image/jpeg") ? "text-image.jpg" : "text-image.png";
+    link.download = "text-image.png";
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -67,7 +123,9 @@ export function TextImageTool() {
               placeholder="A blue ceramic cup on a wooden table, soft daylight"
               onChange={(event) => setPrompt(event.target.value)}
             />
-            <p className="mt-2 text-sm text-muted">Press Create image. Each picture uses your image quota.</p>
+            <p className="mt-2 text-sm text-muted">
+              A Puter window asks you to continue. A few images are free. After that, subscribe there.
+            </p>
           </div>
           <fieldset>
             <legend className="text-sm font-medium text-foreground">Shape</legend>
@@ -97,7 +155,7 @@ export function TextImageTool() {
               })}
             </div>
           </fieldset>
-          <Button type="submit" disabled={busy || prompt.trim().length < 2}>
+          <Button type="submit" disabled={!ready || busy || subscribe || prompt.trim().length < 2}>
             {busy ? "Drawing…" : "Create image"}
           </Button>
         </div>
@@ -114,10 +172,21 @@ export function TextImageTool() {
         <p className="mt-3 min-h-6 text-sm text-pretty" role="status">
           {error ? <span className="text-danger">{error}</span> : null}
         </p>
-        <Button type="button" className="mt-3 w-full" disabled={!src} onClick={download}>
-          <Download className="size-4" aria-hidden />
-          Download
-        </Button>
+        {subscribe ? (
+          <a
+            className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-control bg-accent px-4 text-sm font-medium text-accent-foreground"
+            href={SUBSCRIBE_URL}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Subscribe to Puter
+          </a>
+        ) : (
+          <Button type="button" className="mt-3 w-full" disabled={!src} onClick={download}>
+            <Download className="size-4" aria-hidden />
+            Download
+          </Button>
+        )}
       </div>
     </section>
   );

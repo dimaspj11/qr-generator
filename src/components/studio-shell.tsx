@@ -24,7 +24,7 @@ const COPY: Record<Tool, string> = {
   whatsapp: "Build a WhatsApp chat link, then shorten it or turn it into a QR code.",
   wifi: "Put a network on a QR code guests can scan to join.",
   scan: "Read a QR code with the camera or from a picture.",
-  image: "Describe a picture. The model draws it, then you can download it.",
+  image: "Describe a picture. Free images use a Puter account, not this app.",
 };
 
 export function StudioShell() {
