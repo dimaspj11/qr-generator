@@ -63,6 +63,29 @@ function readPads(): PadSnap[] {
   return pads;
 }
 
+function simulatedPad(now: number): PadSnap {
+  const buttons = Array.from({ length: 17 }, (_, index) => ({
+    name: buttonName(index),
+    pressed: false,
+    value: 0,
+  }));
+  const order = [0, 1, 2, 3, 4, 5, 12, 15, 13, 14, 8, 9, 10, 11];
+  const step = order[Math.floor(now / 650) % order.length] ?? 0;
+  buttons[step] = { name: buttonName(step), pressed: true, value: 1 };
+  const pull = (Math.sin(now / 320) + 1) / 2;
+  buttons[6] = { name: buttonName(6), pressed: pull > 0.15, value: pull };
+  buttons[7] = { name: buttonName(7), pressed: 1 - pull > 0.15, value: 1 - pull };
+  const angle = now / 480;
+  return {
+    index: 0,
+    id: "Simulated controller",
+    mapping: "standard",
+    timestamp: now,
+    buttons,
+    axes: [Math.cos(angle) * 0.72, Math.sin(angle) * 0.72, Math.cos(angle + 1.7) * 0.72, Math.sin(angle + 1.7) * 0.72],
+  };
+}
+
 function axis(axes: number[], index: number) {
   return axes[index] ?? 0;
 }
@@ -169,7 +192,9 @@ export function GamepadTester({ active }: { active: boolean }) {
   const [leftMotor, setLeftMotor] = useState(1);
   const [rightMotor, setRightMotor] = useState(1);
   const [duration, setDuration] = useState(400);
+  const [simOn, setSimOn] = useState(false);
   const padsRef = useRef(pads);
+  const simRef = useRef(false);
   const runRef = useRef(0);
   const tracks = useRef<[StickTrack, StickTrack]>([emptyTrack(), emptyTrack()]);
   const pollRef = useRef({ lastTs: -1, samples: [] as number[], peak: 0 });
@@ -188,7 +213,7 @@ export function GamepadTester({ active }: { active: boolean }) {
     if (!active) return;
     let frame = 0;
     const tick = () => {
-      const next = readPads();
+      const next = simRef.current ? [simulatedPad(performance.now())] : readPads();
       const current = next.find((item) => item.index === selected) ?? next[0];
       if (current) {
         const lx = axis(current.axes, 0);
@@ -263,6 +288,20 @@ export function GamepadTester({ active }: { active: boolean }) {
   const pad = pads.find((item) => item.index === selected) ?? pads[0];
   const pressedNames = pad?.buttons.filter((button) => button.pressed).map((button) => button.name) ?? [];
 
+  function toggleSim() {
+    simRef.current = !simRef.current;
+    setSimOn(simRef.current);
+    pollRef.current = { lastTs: -1, samples: [], peak: 0 };
+    pressedRef.current = [];
+    setPoll(EMPTY_POLL);
+    if (!simRef.current) {
+      const live = readPads();
+      padsRef.current = live;
+      setPads(live);
+      setHistory([]);
+    }
+  }
+
   function clearMap() {
     tracks.current = [emptyTrack(), emptyTrack()];
     if (pad && leftCanvas.current && rightCanvas.current) {
@@ -336,8 +375,18 @@ export function GamepadTester({ active }: { active: boolean }) {
   return (
     <section className="mx-auto mt-6 grid w-full max-w-xl gap-4">
       <p className="text-center text-sm text-muted" role="status">
-        {pad ? (pressedNames.length > 0 ? `Pressed: ${pressedNames.join(", ")}` : "Connected. No buttons pressed.") : "No controller yet. Connect one, then press any button."}
+        {pad
+          ? pressedNames.length > 0
+            ? `Pressed: ${pressedNames.join(", ")}`
+            : simOn
+              ? "Simulated controller."
+              : "Connected. No buttons pressed."
+          : "No controller yet. Connect one, or simulate it."}
       </p>
+      <GamepadFigure pad={pad ?? null} />
+      <Button type="button" className="w-full" variant={simOn ? "secondary" : "primary"} onClick={toggleSim}>
+        {simOn ? "Stop simulation" : "Simulate"}
+      </Button>
       {pads.length > 1 ? (
         <div className="grid grid-cols-4 gap-2" role="tablist" aria-label="Controllers">
           {pads.map((item) => (
@@ -631,5 +680,78 @@ function Range({
       </span>
       <input id={id} className="mt-1 h-11 w-full accent-foreground" type="range" min={min} max={max} step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} />
     </label>
+  );
+}
+
+const MARKS: { index: number; x: number; y: number; w: number; h?: number }[] = [
+  { index: 4, x: 31, y: 17.6, w: 8, h: 4 },
+  { index: 5, x: 69, y: 17.6, w: 8, h: 4 },
+  { index: 12, x: 32.4, y: 31.6, w: 3.4 },
+  { index: 14, x: 28.4, y: 36, w: 3.4 },
+  { index: 15, x: 36.4, y: 36, w: 3.4 },
+  { index: 13, x: 32.4, y: 40.4, w: 3.4 },
+  { index: 3, x: 66.4, y: 44.2, w: 4.2 },
+  { index: 2, x: 63.6, y: 50.4, w: 4.2 },
+  { index: 1, x: 71.2, y: 50.8, w: 4.2 },
+  { index: 0, x: 67.4, y: 57.2, w: 4.2 },
+  { index: 8, x: 49.6, y: 45.4, w: 6.2, h: 3.2 },
+  { index: 9, x: 49.6, y: 53.6, w: 6.2, h: 3.2 },
+];
+
+function GamepadFigure({ pad }: { pad: PadSnap | null }) {
+  const on = (index: number) => Boolean(pad?.buttons[index]?.pressed);
+  const amount = (index: number) => pad?.buttons[index]?.value ?? 0;
+  const lx = pad ? axis(pad.axes, 0) : 0;
+  const ly = pad ? axis(pad.axes, 1) : 0;
+  const rx = pad ? axis(pad.axes, 2) : 0;
+  const ry = pad ? axis(pad.axes, 3) : 0;
+  return (
+    <div className="relative overflow-hidden rounded-panel border border-border bg-black">
+      <img src="/gamepad.jpg" alt="Controller, with the active buttons lit" className="block h-auto w-full" width={1792} height={1008} />
+      <span
+        className="pointer-events-none absolute rounded-full"
+        style={{ left: "31%", top: "17.2%", width: "9%", height: "5%", transform: "translate(-50%, -50%)", background: `rgba(46,200,255,${amount(6) * 0.75})`, boxShadow: amount(6) > 0.2 ? "0 0 16px #2ec8ff" : undefined }}
+        aria-hidden
+      />
+      <span
+        className="pointer-events-none absolute rounded-full"
+        style={{ left: "69%", top: "17.2%", width: "9%", height: "5%", transform: "translate(-50%, -50%)", background: `rgba(46,200,255,${amount(7) * 0.75})`, boxShadow: amount(7) > 0.2 ? "0 0 16px #2ec8ff" : undefined }}
+        aria-hidden
+      />
+      {MARKS.map((mark) => (
+        <span
+          key={mark.index}
+          className="pointer-events-none absolute rounded-full"
+          style={{
+            left: `${mark.x}%`,
+            top: `${mark.y}%`,
+            width: `${mark.w}%`,
+            height: mark.h ? `${mark.h}%` : undefined,
+            aspectRatio: mark.h ? undefined : "1",
+            transform: "translate(-50%, -50%)",
+            background: on(mark.index) ? "rgba(46,200,255,0.78)" : "transparent",
+            boxShadow: on(mark.index) ? "0 0 16px #2ec8ff" : undefined,
+          }}
+          aria-hidden
+        />
+      ))}
+      <StickDot x={41.6} y={52.2} dx={lx} dy={ly} pressed={on(10)} />
+      <StickDot x={60.2} y={35.2} dx={rx} dy={ry} pressed={on(11)} />
+    </div>
+  );
+}
+
+function StickDot({ x, y, dx, dy, pressed }: { x: number; y: number; dx: number; dy: number; pressed: boolean }) {
+  return (
+    <span
+      className="pointer-events-none absolute size-3 rounded-full bg-accent"
+      style={{
+        left: `${x + dx * 2.4}%`,
+        top: `${y + dy * 4.2}%`,
+        transform: "translate(-50%, -50%)",
+        boxShadow: pressed ? "0 0 0 8px rgba(46,200,255,0.45), 0 0 18px #2ec8ff" : "0 0 10px #2ec8ff",
+      }}
+      aria-hidden
+    />
   );
 }
