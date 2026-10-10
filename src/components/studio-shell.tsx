@@ -3,11 +3,11 @@ import { LinkShortener } from "@/components/link-shortener";
 import { QrReader } from "@/components/qr-reader";
 import { QrStudio } from "@/components/qr-studio";
 import { WhatsAppTool } from "@/components/whatsapp-tool";
-import { TextImageTool } from "@/components/text-image-tool";
+import { GamepadTester } from "@/components/gamepad-tester";
 import { WifiTool } from "@/components/wifi-tool";
 import { cn } from "@/lib/utils";
 
-type Tool = "qr" | "short" | "whatsapp" | "wifi" | "scan" | "image";
+type Tool = "qr" | "short" | "whatsapp" | "wifi" | "scan" | "pad";
 
 const TOOLS: { id: Tool; label: string }[] = [
   { id: "qr", label: "QR code" },
@@ -15,7 +15,7 @@ const TOOLS: { id: Tool; label: string }[] = [
   { id: "whatsapp", label: "WhatsApp" },
   { id: "wifi", label: "Wi-Fi" },
   { id: "scan", label: "Scan" },
-  { id: "image", label: "Text image" },
+  { id: "pad", label: "Gamepad" },
 ];
 
 const COPY: Record<Tool, string> = {
@@ -24,7 +24,7 @@ const COPY: Record<Tool, string> = {
   whatsapp: "Build a WhatsApp chat link, then shorten it or turn it into a QR code.",
   wifi: "Put a network on a QR code guests can scan to join.",
   scan: "Read a QR code with the camera or from a picture.",
-  image: "Describe a picture. Free images use a Puter account, not this app.",
+  pad: "Connect a controller. Buttons, sticks, triggers, and rumble show up live.",
 };
 
 export function StudioShell() {
@@ -91,8 +91,8 @@ export function StudioShell() {
       <div hidden={tool !== "scan"}>
         <QrReader active={tool === "scan"} onMakeQr={openInQr} />
       </div>
-      <div hidden={tool !== "image"}>
-        <TextImageTool />
+      <div hidden={tool !== "pad"}>
+        <GamepadTester active={tool === "pad"} />
       </div>
     </main>
   );
