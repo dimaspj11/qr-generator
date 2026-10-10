@@ -24,7 +24,7 @@ const COPY: Record<Tool, string> = {
   whatsapp: "Build a WhatsApp chat link, then shorten it or turn it into a QR code.",
   wifi: "Put a network on a QR code guests can scan to join.",
   scan: "Read a QR code with the camera or from a picture.",
-  pad: "Connect a controller, or simulate one. The picture lights up with each input.",
+  pad: "Connect a controller, or simulate one. Sticks, drift, polling, and vibration update live.",
 };
 
 export function StudioShell() {

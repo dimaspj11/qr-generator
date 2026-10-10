@@ -383,7 +383,6 @@ export function GamepadTester({ active }: { active: boolean }) {
               : "Connected. No buttons pressed."
           : "No controller yet. Connect one, or simulate it."}
       </p>
-      <GamepadFigure pad={pad ?? null} />
       <Button type="button" className="w-full" variant={simOn ? "secondary" : "primary"} onClick={toggleSim}>
         {simOn ? "Stop simulation" : "Simulate"}
       </Button>
@@ -683,75 +682,3 @@ function Range({
   );
 }
 
-const MARKS: { index: number; x: number; y: number; w: number; h?: number }[] = [
-  { index: 4, x: 31, y: 17.6, w: 8, h: 4 },
-  { index: 5, x: 69, y: 17.6, w: 8, h: 4 },
-  { index: 12, x: 32.4, y: 31.6, w: 3.4 },
-  { index: 14, x: 28.4, y: 36, w: 3.4 },
-  { index: 15, x: 36.4, y: 36, w: 3.4 },
-  { index: 13, x: 32.4, y: 40.4, w: 3.4 },
-  { index: 3, x: 66.4, y: 44.2, w: 4.2 },
-  { index: 2, x: 63.6, y: 50.4, w: 4.2 },
-  { index: 1, x: 71.2, y: 50.8, w: 4.2 },
-  { index: 0, x: 67.4, y: 57.2, w: 4.2 },
-  { index: 8, x: 49.6, y: 45.4, w: 6.2, h: 3.2 },
-  { index: 9, x: 49.6, y: 53.6, w: 6.2, h: 3.2 },
-];
-
-function GamepadFigure({ pad }: { pad: PadSnap | null }) {
-  const on = (index: number) => Boolean(pad?.buttons[index]?.pressed);
-  const amount = (index: number) => pad?.buttons[index]?.value ?? 0;
-  const lx = pad ? axis(pad.axes, 0) : 0;
-  const ly = pad ? axis(pad.axes, 1) : 0;
-  const rx = pad ? axis(pad.axes, 2) : 0;
-  const ry = pad ? axis(pad.axes, 3) : 0;
-  return (
-    <div className="relative overflow-hidden rounded-panel border border-border bg-black">
-      <img src="/gamepad.jpg" alt="Controller, with the active buttons lit" className="block h-auto w-full" width={1792} height={1008} />
-      <span
-        className="pointer-events-none absolute rounded-full"
-        style={{ left: "31%", top: "17.2%", width: "9%", height: "5%", transform: "translate(-50%, -50%)", background: `rgba(46,200,255,${amount(6) * 0.75})`, boxShadow: amount(6) > 0.2 ? "0 0 16px #2ec8ff" : undefined }}
-        aria-hidden
-      />
-      <span
-        className="pointer-events-none absolute rounded-full"
-        style={{ left: "69%", top: "17.2%", width: "9%", height: "5%", transform: "translate(-50%, -50%)", background: `rgba(46,200,255,${amount(7) * 0.75})`, boxShadow: amount(7) > 0.2 ? "0 0 16px #2ec8ff" : undefined }}
-        aria-hidden
-      />
-      {MARKS.map((mark) => (
-        <span
-          key={mark.index}
-          className="pointer-events-none absolute rounded-full"
-          style={{
-            left: `${mark.x}%`,
-            top: `${mark.y}%`,
-            width: `${mark.w}%`,
-            height: mark.h ? `${mark.h}%` : undefined,
-            aspectRatio: mark.h ? undefined : "1",
-            transform: "translate(-50%, -50%)",
-            background: on(mark.index) ? "rgba(46,200,255,0.78)" : "transparent",
-            boxShadow: on(mark.index) ? "0 0 16px #2ec8ff" : undefined,
-          }}
-          aria-hidden
-        />
-      ))}
-      <StickDot x={41.6} y={52.2} dx={lx} dy={ly} pressed={on(10)} />
-      <StickDot x={60.2} y={35.2} dx={rx} dy={ry} pressed={on(11)} />
-    </div>
-  );
-}
-
-function StickDot({ x, y, dx, dy, pressed }: { x: number; y: number; dx: number; dy: number; pressed: boolean }) {
-  return (
-    <span
-      className="pointer-events-none absolute size-3 rounded-full bg-accent"
-      style={{
-        left: `${x + dx * 2.4}%`,
-        top: `${y + dy * 4.2}%`,
-        transform: "translate(-50%, -50%)",
-        boxShadow: pressed ? "0 0 0 8px rgba(46,200,255,0.45), 0 0 18px #2ec8ff" : "0 0 10px #2ec8ff",
-      }}
-      aria-hidden
-    />
-  );
-}
