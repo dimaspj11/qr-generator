@@ -14,25 +14,25 @@ const LEVELS: { id: LevelId; name: string; recovery: string; detail: string }[] 
     id: "L",
     name: "Low",
     recovery: "7%",
-    detail: "Pulih sekitar 7% kode yang rusak. Polanya paling kecil.",
+    detail: "Recovers about 7% of a damaged code. Keeps the pattern smallest.",
   },
   {
     id: "M",
     name: "Medium",
     recovery: "15%",
-    detail: "Pulih sekitar 15%. Pilihan yang aman untuk tautan dan catatan pendek.",
+    detail: "Recovers about 15%. A reliable default for links and short notes.",
   },
   {
     id: "Q",
     name: "Quartile",
     recovery: "25%",
-    detail: "Pulih sekitar 25%. Lebih baik jika hasil cetak bisa tergores.",
+    detail: "Recovers about 25%. Better if the print might get scuffed.",
   },
   {
     id: "H",
     name: "High",
     recovery: "30%",
-    detail: "Pulih sekitar 30%. Paling tahan rusak, tetapi polanya lebih rapat.",
+    detail: "Recovers about 30%. The most robust option, with a denser pattern.",
   },
 ];
 
@@ -303,7 +303,7 @@ export function QrStudio({ contentSeed }: { contentSeed?: { token: number; value
               />
               <div className="mt-2 flex items-baseline justify-between gap-3">
                 <p id="qr-content-hint" className="text-sm text-pretty text-muted">
-                  Berubah setiap kali teks diubah. Tautan, catatan, atau teks Wi-Fi semuanya bisa dikodekan.
+                  Updates as you type.
                 </p>
                 <p id="qr-content-count" className="shrink-0 font-mono text-xs text-subtle tabular-nums">
                   {content.length} characters
@@ -395,7 +395,7 @@ export function QrStudio({ contentSeed }: { contentSeed?: { token: number; value
                 />
               </Slider.Root>
               <p id="qr-size-help" className="text-sm text-pretty text-muted">
-                Lebar PNG dalam piksel, dari {MIN_SIZE} sampai {MAX_SIZE}. Angka ini sudah termasuk batas putih di sekeliling kode.
+                PNG width in pixels, from {MIN_SIZE} to {MAX_SIZE}, including a quiet zone.
               </p>
             </div>
 

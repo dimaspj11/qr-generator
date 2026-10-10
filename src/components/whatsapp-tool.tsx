@@ -93,9 +93,7 @@ export function WhatsAppTool({ onMakeQr }: { onMakeQr: (value: string) => void }
               setMessage(event.target.value);
             }}
           />
-          <p className="mt-2 text-sm text-muted">
-            Nomor boleh diawali 0. Angka itu dihapus, lalu digabung dengan kode negara. Contoh: kode 62 dan nomor 081234567890 menjadi tautan ke 6281234567890.
-          </p>
+          <p className="mt-2 text-sm text-muted">A leading 0 is removed. Country code 62 is Indonesia.</p>
         </div>
       </form>
 

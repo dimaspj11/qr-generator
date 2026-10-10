@@ -136,9 +136,7 @@ export function WifiTool({ onMakeQr }: { onMakeQr: (value: string) => void }) {
           <img src={preview} alt="QR code for this Wi-Fi network" className="mx-auto w-48 rounded-sm" />
         ) : (
           <p className="flex min-h-48 items-center justify-center text-sm text-muted">
-            {security !== "nopass" && ssid.trim() && !password
-              ? "Isi sandi. Tanpa sandi, kode WPA tidak bisa dipindai."
-              : "Isi nama jaringan. Nama ini harus sama dengan SSID yang tampil di ponsel."}
+            {security !== "nopass" && ssid.trim() && !password ? "Add the password." : "Enter the network name."}
           </p>
         )}
         {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
