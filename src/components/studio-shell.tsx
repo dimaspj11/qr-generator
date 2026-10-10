@@ -23,7 +23,7 @@ const COPY: Record<Tool, string> = {
   short: "Paste a long URL. Share the short link, or turn it into a QR code.",
   whatsapp: "Build a WhatsApp chat link, then shorten it or turn it into a QR code.",
   wifi: "Put a network on a QR code guests can scan to join.",
-  scan: "Read a QR code with the camera or from a picture.",
+  scan: "Read a QR code with the camera or from a picture. A Wi-Fi code can open that network.",
   pad: "Connect a controller, or simulate one. Sticks, drift, polling, and vibration update live.",
 };
 

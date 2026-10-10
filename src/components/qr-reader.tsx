@@ -4,6 +4,7 @@ import { LinkActions } from "@/components/link-actions";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { imageDataFromSource, readQrFromImageData } from "@/lib/read-qr";
+import { parseWifiPayload } from "@/lib/wifi-payload";
 import { previewPathPrefix } from "@/lib/preview-path-prefix";
 import { createShortLink } from "@/lib/short-links";
 
@@ -23,6 +24,7 @@ export function QrReader({ active, onMakeQr }: { active: boolean; onMakeQr: (val
   const [result, setResult] = useState("");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState("");
+  const [wifiNote, setWifiNote] = useState("");
   const [shortUrl, setShortUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -71,6 +73,7 @@ export function QrReader({ active, onMakeQr }: { active: boolean; onMakeQr: (val
             if (stopped || !text) return;
             setResult(text);
             setShortUrl("");
+            setWifiNote("");
             setError("");
             setScanning(false);
             stream.getTracks().forEach((track) => track.stop());
@@ -93,6 +96,7 @@ export function QrReader({ active, onMakeQr }: { active: boolean; onMakeQr: (val
     setError("");
     setResult("");
     setShortUrl("");
+    setWifiNote("");
     if (!navigator.mediaDevices?.getUserMedia) {
       setError("This browser has no camera. Upload a picture instead.");
       return;
@@ -113,6 +117,7 @@ export function QrReader({ active, onMakeQr }: { active: boolean; onMakeQr: (val
     if (!file) return;
     setError("");
     setShortUrl("");
+    setWifiNote("");
     try {
       const bitmap = await createImageBitmap(file);
       const data = imageDataFromSource(bitmap, bitmap.width, bitmap.height);
@@ -153,7 +158,33 @@ export function QrReader({ active, onMakeQr }: { active: boolean; onMakeQr: (val
   }
 
   const url = result ? asUrl(result) : null;
+  const wifi = result ? parseWifiPayload(result) : null;
   const shown = shortUrl || url;
+
+  async function connectWifi() {
+    if (!wifi) return;
+    setError("");
+    if (wifi.password) {
+      try {
+        await navigator.clipboard.writeText(wifi.password);
+        setCopied(wifi.password);
+      } catch {
+        setWifiNote("Could not copy the password. Select it below, then join the network in settings.");
+        return;
+      }
+    }
+    const named = `"${wifi.ssid}"`;
+    if (/Android/i.test(navigator.userAgent)) {
+      setWifiNote(wifi.password ? `Password copied. Choose ${named} in Wi-Fi settings and paste it.` : `Choose ${named} in Wi-Fi settings.`);
+      window.location.href = "intent:#Intent;action=android.settings.WIFI_SETTINGS;end";
+      return;
+    }
+    setWifiNote(
+      wifi.password
+        ? `Password copied. This browser can't join Wi-Fi. Connect to ${named} in your settings.`
+        : `This browser can't join Wi-Fi. Connect to ${named} in your settings.`,
+    );
+  }
 
   return (
     <section className="mx-auto mt-6 w-full max-w-xl rounded-panel border border-border bg-card p-5">
@@ -187,10 +218,41 @@ export function QrReader({ active, onMakeQr }: { active: boolean; onMakeQr: (val
       ) : null}
 
       <p className="mt-4 min-h-6 break-all text-sm text-pretty" role="status">
-        {error ? <span className="text-danger">{error}</span> : result ? <span className="text-foreground">{result}</span> : <span className="text-muted">Point the camera at a code, or upload a picture.</span>}
+        {error ? <span className="text-danger">{error}</span> : wifi ? <span className="text-foreground">Wi-Fi network found.</span> : result ? <span className="text-foreground">{result}</span> : <span className="text-muted">Point the camera at a code, or upload a picture.</span>}
       </p>
 
-      {result && shown ? (
+      {wifi ? (
+        <div className="mt-3 grid gap-3">
+          <dl className="grid gap-2 text-sm">
+            <div className="flex items-baseline justify-between gap-3">
+              <dt className="text-muted">Network</dt>
+              <dd className="break-all text-right text-foreground">{wifi.ssid}</dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-3">
+              <dt className="text-muted">Security</dt>
+              <dd>{wifi.security === "NOPASS" ? "None" : wifi.security}</dd>
+            </div>
+            {wifi.password ? (
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-muted">Password</dt>
+                <dd className="break-all text-right font-mono text-foreground">{wifi.password}</dd>
+              </div>
+            ) : null}
+          </dl>
+          {wifi.hidden ? <p className="text-sm text-muted">This network is hidden.</p> : null}
+          <Button type="button" onClick={() => void connectWifi()}>
+            Connect
+          </Button>
+          <p className="min-h-6 text-sm text-muted" role="status">
+            {wifiNote}
+          </p>
+          <Button type="button" variant="secondary" onClick={() => onMakeQr(result)}>
+            Open in QR tool
+          </Button>
+        </div>
+      ) : null}
+
+      {result && shown && !wifi ? (
         <div className="mt-3">
           <LinkActions
             href={shown}
@@ -202,7 +264,7 @@ export function QrReader({ active, onMakeQr }: { active: boolean; onMakeQr: (val
           />
         </div>
       ) : null}
-      {result && !shown ? (
+      {result && !shown && !wifi ? (
         <div className="mt-3 flex flex-col gap-2">
           <Button type="button" variant="secondary" onClick={() => void copy(result)}>
             {copied === result ? "Copied" : "Copy text"}
