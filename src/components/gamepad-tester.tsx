@@ -30,7 +30,6 @@ type PadSnap = {
   mapping: string;
   buttons: ButtonSnap[];
   axes: number[];
-  canRumble: boolean;
 };
 
 type Rumbler = {
@@ -51,8 +50,6 @@ function readPads(): PadSnap[] {
   const pads: PadSnap[] = [];
   for (const pad of source) {
     if (!pad) continue;
-    const actuator = (pad as Gamepad & { vibrationActuator?: Rumbler }).vibrationActuator;
-    const haptic = (pad as Gamepad & { hapticActuators?: Rumbler[] }).hapticActuators?.[0];
     pads.push({
       index: pad.index,
       id: pad.id || `Controller ${pad.index + 1}`,
@@ -63,7 +60,6 @@ function readPads(): PadSnap[] {
         value: button.value,
       })),
       axes: Array.from(pad.axes),
-      canRumble: Boolean(actuator?.playEffect || haptic?.pulse),
     });
   }
   return pads;
@@ -147,7 +143,11 @@ export function GamepadTester({ active }: { active: boolean }) {
   const [pads, setPads] = useState<PadSnap[]>([]);
   const [selected, setSelected] = useState(0);
   const [note, setNote] = useState("");
+  const [leftMotor, setLeftMotor] = useState(1);
+  const [rightMotor, setRightMotor] = useState(1);
+  const [duration, setDuration] = useState(500);
   const padsRef = useRef(pads);
+  const runRef = useRef(0);
 
   useEffect(() => {
     if (!active) return;
@@ -178,26 +178,76 @@ export function GamepadTester({ active }: { active: boolean }) {
   const pad = pads.find((item) => item.index === selected) ?? pads[0];
   const pressed = pad?.buttons.filter((button) => button.pressed).map((button) => button.name) ?? [];
 
-  async function rumble(strong: number, weak: number) {
-    if (!pad) return;
-    const live = navigator.getGamepads?.()[pad.index] as (Gamepad & { vibrationActuator?: Rumbler; hapticActuators?: Rumbler[] }) | null;
+  function livePad() {
+    if (!pad) return null;
+    return navigator.getGamepads?.()[pad.index] as (Gamepad & { vibrationActuator?: Rumbler; hapticActuators?: Rumbler[] }) | null;
+  }
+
+  async function sendRumble(strong: number, weak: number, ms: number) {
+    const live = livePad();
     const actuator = live?.vibrationActuator;
-    try {
-      if (actuator?.playEffect) {
-        await actuator.playEffect("dual-rumble", { duration: 400, startDelay: 0, strongMagnitude: strong, weakMagnitude: weak });
-        setNote(strong + weak === 0 ? "Rumble stopped." : "Rumble sent.");
-        return;
-      }
-      const haptic = live?.hapticActuators?.[0];
-      if (haptic?.pulse && strong + weak > 0) {
-        await haptic.pulse(Math.max(strong, weak), 400);
-        setNote("Rumble sent.");
-        return;
-      }
-      setNote("This controller does not report rumble.");
-    } catch {
-      setNote("This browser blocked rumble.");
+    if (actuator?.playEffect) {
+      await actuator.playEffect("dual-rumble", {
+        duration: ms,
+        startDelay: 0,
+        strongMagnitude: strong,
+        weakMagnitude: weak,
+      });
+      return true;
     }
+    const haptic = live?.hapticActuators?.[0];
+    if (haptic?.pulse && strong + weak > 0) {
+      await haptic.pulse(Math.max(strong, weak), ms);
+      return true;
+    }
+    if (actuator?.reset && strong + weak === 0) {
+      await actuator.reset();
+      return true;
+    }
+    return false;
+  }
+
+  async function rumble(strong: number, weak: number, ms = duration) {
+    const token = ++runRef.current;
+    try {
+      const sent = await sendRumble(strong, weak, ms);
+      if (runRef.current !== token) return;
+      setNote(sent ? (strong + weak === 0 ? "Vibration stopped." : "Vibration sent.") : "This controller does not report vibration.");
+    } catch {
+      if (runRef.current === token) setNote("This browser blocked vibration.");
+    }
+  }
+
+  async function motorTest() {
+    const token = ++runRef.current;
+    const steps: { label: string; strong: number; weak: number }[] = [
+      { label: "Left motor.", strong: 1, weak: 0 },
+      { label: "Right motor.", strong: 0, weak: 1 },
+      { label: "Both motors.", strong: 1, weak: 1 },
+    ];
+    try {
+      for (const step of steps) {
+        if (runRef.current !== token) return;
+        setNote(step.label);
+        const sent = await sendRumble(step.strong, step.weak, 450);
+        if (!sent) {
+          if (runRef.current === token) setNote("This controller does not report vibration.");
+          return;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 600));
+      }
+      if (runRef.current === token) setNote("Vibration test finished.");
+    } catch {
+      if (runRef.current === token) setNote("This browser blocked vibration.");
+    }
+  }
+
+  function stopRumble() {
+    runRef.current += 1;
+    void sendRumble(0, 0, 0).then(
+      (sent) => setNote(sent ? "Vibration stopped." : "This controller does not report vibration."),
+      () => setNote("This browser blocked vibration."),
+    );
   }
 
   return (
@@ -233,6 +283,80 @@ export function GamepadTester({ active }: { active: boolean }) {
           <div className="rounded-panel border border-border bg-card p-4">
             <p className="break-all text-sm text-foreground">{pad.id}</p>
             <p className="mt-1 text-xs text-muted">Mapping: {pad.mapping}</p>
+          </div>
+
+          <div className="rounded-panel border border-border bg-card p-4">
+            <h2 className="text-sm font-medium">Vibration test</h2>
+            <div className="mt-3 grid gap-3">
+              <label className="text-sm text-foreground" htmlFor="rumble-left">
+                <span className="flex items-baseline justify-between">
+                  Left motor
+                  <span className="font-mono text-xs text-muted tabular-nums">{leftMotor.toFixed(2)}</span>
+                </span>
+                <input
+                  id="rumble-left"
+                  className="mt-1 h-11 w-full accent-foreground"
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={leftMotor}
+                  onChange={(event) => setLeftMotor(Number(event.target.value))}
+                />
+              </label>
+              <label className="text-sm text-foreground" htmlFor="rumble-right">
+                <span className="flex items-baseline justify-between">
+                  Right motor
+                  <span className="font-mono text-xs text-muted tabular-nums">{rightMotor.toFixed(2)}</span>
+                </span>
+                <input
+                  id="rumble-right"
+                  className="mt-1 h-11 w-full accent-foreground"
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={rightMotor}
+                  onChange={(event) => setRightMotor(Number(event.target.value))}
+                />
+              </label>
+              <label className="text-sm text-foreground" htmlFor="rumble-duration">
+                <span className="flex items-baseline justify-between">
+                  Duration
+                  <span className="font-mono text-xs text-muted tabular-nums">{duration} ms</span>
+                </span>
+                <input
+                  id="rumble-duration"
+                  className="mt-1 h-11 w-full accent-foreground"
+                  type="range"
+                  min={100}
+                  max={2000}
+                  step={50}
+                  value={duration}
+                  onChange={(event) => setDuration(Number(event.target.value))}
+                />
+              </label>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Button type="button" onClick={() => void rumble(leftMotor, rightMotor)}>
+                Play
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => void motorTest()}>
+                Left then right
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => void rumble(1, 0, 450)}>
+                Left only
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => void rumble(0, 1, 450)}>
+                Right only
+              </Button>
+              <Button type="button" variant="secondary" className="col-span-2" onClick={stopRumble}>
+                Stop
+              </Button>
+            </div>
+            <p className="mt-3 min-h-6 text-sm text-muted" role="status">
+              {note || "Left is the heavy motor. Right is the light motor."}
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -280,27 +404,6 @@ export function GamepadTester({ active }: { active: boolean }) {
                 </li>
               ))}
             </ul>
-          </div>
-
-          <div className="rounded-panel border border-border bg-card p-4">
-            <h2 className="text-sm font-medium">Rumble</h2>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <Button type="button" variant="secondary" disabled={!pad.canRumble} onClick={() => void rumble(0, 1)}>
-                Weak
-              </Button>
-              <Button type="button" variant="secondary" disabled={!pad.canRumble} onClick={() => void rumble(1, 0)}>
-                Strong
-              </Button>
-              <Button type="button" disabled={!pad.canRumble} onClick={() => void rumble(1, 1)}>
-                Both
-              </Button>
-              <Button type="button" variant="secondary" disabled={!pad.canRumble} onClick={() => void rumble(0, 0)}>
-                Stop
-              </Button>
-            </div>
-            <p className="mt-3 min-h-6 text-sm text-muted" role="status">
-              {note || (pad.canRumble ? "Rumble is available." : "Rumble is not reported.")}
-            </p>
           </div>
         </div>
       ) : (
