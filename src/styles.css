@@ -1,0 +1,127 @@
+@import "tailwindcss";
+@import "@fontsource/manrope/latin-400.css";
+@import "@fontsource/manrope/latin-500.css";
+@import "@fontsource/manrope/latin-600.css";
+@import "@fontsource/ibm-plex-mono/latin-400.css";
+@import "@fontsource/ibm-plex-mono/latin-500.css";
+
+@theme {
+  --font-sans: "Manrope", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --color-background: #05060b;
+  --color-foreground: #f4f7fb;
+  --color-card: #10131a;
+  --color-raised: #181c26;
+  --color-muted: #a7b0be;
+  --color-subtle: #8d96a6;
+  --color-border: #2a3140;
+  --color-accent: #2ec8ff;
+  --color-accent-foreground: #041018;
+  --color-accent-hover: #7ad9ff;
+  --color-warn: #e0c39a;
+  --color-danger: #f0c2c2;
+
+  --radius-panel: 1.75rem;
+  --radius-preview: 1.5rem;
+  --radius-control: 0.5rem;
+}
+
+@layer base {
+  html {
+    background: var(--color-background);
+    color: var(--color-foreground);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    min-height: 100vh;
+    font-family: var(--font-sans);
+    line-height: 1.5;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  label {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-foreground);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-foreground) 18%, transparent);
+    color: var(--color-foreground);
+  }
+}
+
+@media (max-width: 1023px) {
+  html {
+    scroll-padding-top: 18rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.page-shell {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+  padding-top: max(1.5rem, env(safe-area-inset-top));
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+}
+
+.qr-preview {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.qr-thumb {
+  position: relative;
+}
+
+.qr-thumb::before {
+  content: "";
+  position: absolute;
+  inset: -12px;
+}
+
+.color-input {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: transparent;
+}
+
+.color-input::-webkit-color-swatch-wrapper {
+  padding: 4px;
+}
+
+.color-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 4px;
+}
+
+.color-input::-moz-color-swatch {
+  border: none;
+  border-radius: 4px;
+}
+
+.sr-only:focus,
+.sr-only:focus-visible {
+  outline: none;
+}
