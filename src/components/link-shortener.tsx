@@ -98,7 +98,7 @@ export function LinkShortener({ onMakeQr }: { onMakeQr: (url: string) => void })
             aria-describedby="custom-code-hint"
           />
           <p id="custom-code-hint" className="mt-2 text-sm text-muted">
-            Leave this blank for a random ending. 3–32 letters, numbers, or hyphens.
+            Kosongkan untuk akhiran acak. Jika diisi, pakai 3–32 huruf kecil, angka, atau tanda hubung, tanpa spasi.
           </p>
         </div>
         <Button type="submit" disabled={busy || url.trim().length === 0}>

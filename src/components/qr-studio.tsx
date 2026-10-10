@@ -14,25 +14,25 @@ const LEVELS: { id: LevelId; name: string; recovery: string; detail: string }[] 
     id: "L",
     name: "Low",
     recovery: "7%",
-    detail: "Recovers about 7% of a damaged code. Keeps the pattern smallest.",
+    detail: "Pulih sekitar 7% kode yang rusak. Polanya paling kecil.",
   },
   {
     id: "M",
     name: "Medium",
     recovery: "15%",
-    detail: "Recovers about 15%. A reliable default for links and short notes.",
+    detail: "Pulih sekitar 15%. Pilihan yang aman untuk tautan dan catatan pendek.",
   },
   {
     id: "Q",
     name: "Quartile",
     recovery: "25%",
-    detail: "Recovers about 25%. Better if the print might get scuffed.",
+    detail: "Pulih sekitar 25%. Lebih baik jika hasil cetak bisa tergores.",
   },
   {
     id: "H",
     name: "High",
     recovery: "30%",
-    detail: "Recovers about 30%. The most robust option, with a denser pattern.",
+    detail: "Pulih sekitar 30%. Paling tahan rusak, tetapi polanya lebih rapat.",
   },
 ];
 
@@ -303,7 +303,7 @@ export function QrStudio({ contentSeed }: { contentSeed?: { token: number; value
               />
               <div className="mt-2 flex items-baseline justify-between gap-3">
                 <p id="qr-content-hint" className="text-sm text-pretty text-muted">
-                  Updates as you type.
+                  Berubah setiap kali teks diubah. Tautan, catatan, atau teks Wi-Fi semuanya bisa dikodekan.
                 </p>
                 <p id="qr-content-count" className="shrink-0 font-mono text-xs text-subtle tabular-nums">
                   {content.length} characters
@@ -395,7 +395,7 @@ export function QrStudio({ contentSeed }: { contentSeed?: { token: number; value
                 />
               </Slider.Root>
               <p id="qr-size-help" className="text-sm text-pretty text-muted">
-                PNG width in pixels, from {MIN_SIZE} to {MAX_SIZE}, including a quiet zone.
+                Lebar PNG dalam piksel, dari {MIN_SIZE} sampai {MAX_SIZE}. Angka ini sudah termasuk batas putih di sekeliling kode.
               </p>
             </div>
 

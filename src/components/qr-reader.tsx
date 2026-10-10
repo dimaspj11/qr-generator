@@ -187,7 +187,7 @@ export function QrReader({ active, onMakeQr }: { active: boolean; onMakeQr: (val
       ) : null}
 
       <p className="mt-4 min-h-6 break-all text-sm text-pretty" role="status">
-        {error ? <span className="text-danger">{error}</span> : result ? <span className="text-foreground">{result}</span> : <span className="text-muted">Point the camera at a code, or upload a picture.</span>}
+        {error ? <span className="text-danger">{error}</span> : result ? <span className="text-foreground">{result}</span> : <span className="text-muted">Arahkan kamera ke kode, atau unggah gambar PNG, JPG, atau tangkapan layar.</span>}
       </p>
 
       {result && shown ? (
