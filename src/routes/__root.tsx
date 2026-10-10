@@ -14,7 +14,7 @@ export const Route = createRootRoute({
       {
         name: "description",
         content:
-          "Generate a QR code as you type. Set colors, size, and error correction, then download a PNG.",
+          "Generate a QR code as you type, or shorten a link you can share.",
       },
       { name: "theme-color", content: "#05060b" },
     ],

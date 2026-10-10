@@ -160,7 +160,7 @@ function ColorField({
   );
 }
 
-export function QrStudio() {
+export function QrStudio({ contentSeed }: { contentSeed?: { token: number; value: string } | null }) {
   const [content, setContent] = useState<string>(EXAMPLES[0].value);
   const [level, setLevel] = useState<LevelId>("M");
   const [size, setSize] = useState(DEFAULT_SIZE);
@@ -174,6 +174,11 @@ export function QrStudio() {
   const selectedLevel = LEVELS.find((item) => item.id === level) ?? LEVELS[1];
   const ratio = contrastRatio(foreground, background);
   const lowContrast = ratio < MIN_CONTRAST;
+
+  useEffect(() => {
+    if (!contentSeed) return;
+    setContent(contentSeed.value);
+  }, [contentSeed]);
 
   useEffect(() => {
     if (content.length === 0) {
@@ -268,23 +273,7 @@ export function QrStudio() {
   }
 
   return (
-    <main className="page-shell mx-auto w-full max-w-5xl">
-      <header className="mx-auto w-full max-w-xs">
-        <h1>
-          <img
-            src="/logo.jpg"
-            alt="QR Generator. Create your QR code instantly."
-            width={1039}
-            height={825}
-            className="h-auto w-full"
-          />
-        </h1>
-        <p className="mt-1 text-center text-pretty text-muted">
-          Type a link or any text. The preview updates immediately, then save a PNG.
-        </p>
-      </header>
-
-      <form className="mt-8 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-8" onSubmit={onSubmit}>
+    <form className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-8" onSubmit={onSubmit}>
         <section className="order-2 rounded-panel border border-border bg-card p-5 lg:order-1">
           <div className="flex flex-col gap-6">
             <div>
@@ -505,6 +494,5 @@ export function QrStudio() {
           </div>
         </aside>
       </form>
-    </main>
   );
 }
