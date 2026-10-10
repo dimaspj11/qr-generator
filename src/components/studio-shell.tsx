@@ -3,10 +3,11 @@ import { LinkShortener } from "@/components/link-shortener";
 import { QrReader } from "@/components/qr-reader";
 import { QrStudio } from "@/components/qr-studio";
 import { WhatsAppTool } from "@/components/whatsapp-tool";
+import { TextImageTool } from "@/components/text-image-tool";
 import { WifiTool } from "@/components/wifi-tool";
 import { cn } from "@/lib/utils";
 
-type Tool = "qr" | "short" | "whatsapp" | "wifi" | "scan";
+type Tool = "qr" | "short" | "whatsapp" | "wifi" | "scan" | "image";
 
 const TOOLS: { id: Tool; label: string }[] = [
   { id: "qr", label: "QR code" },
@@ -14,6 +15,7 @@ const TOOLS: { id: Tool; label: string }[] = [
   { id: "whatsapp", label: "WhatsApp" },
   { id: "wifi", label: "Wi-Fi" },
   { id: "scan", label: "Scan" },
+  { id: "image", label: "Text image" },
 ];
 
 const COPY: Record<Tool, string> = {
@@ -22,6 +24,7 @@ const COPY: Record<Tool, string> = {
   whatsapp: "Build a WhatsApp chat link, then shorten it or turn it into a QR code.",
   wifi: "Put a network on a QR code guests can scan to join.",
   scan: "Read a QR code with the camera or from a picture.",
+  image: "Turn text into a picture, then download a PNG.",
 };
 
 export function StudioShell() {
@@ -87,6 +90,9 @@ export function StudioShell() {
       </div>
       <div hidden={tool !== "scan"}>
         <QrReader active={tool === "scan"} onMakeQr={openInQr} />
+      </div>
+      <div hidden={tool !== "image"}>
+        <TextImageTool />
       </div>
     </main>
   );

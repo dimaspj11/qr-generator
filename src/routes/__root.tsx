@@ -14,7 +14,7 @@ export const Route = createRootRoute({
       {
         name: "description",
         content:
-          "Generate a QR code, shorten a link, make a WhatsApp or Wi-Fi code, or scan one.",
+          "Generate a QR code, shorten a link, make a WhatsApp or Wi-Fi code, scan one, or turn text into an image.",
       },
       { name: "theme-color", content: "#05060b" },
     ],
