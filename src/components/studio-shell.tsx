@@ -33,7 +33,8 @@ export function StudioShell() {
         </p>
       </header>
 
-      <div className="mx-auto mt-6 flex w-full max-w-sm gap-2" role="tablist" aria-label="Tools">
+      <div className="sticky top-0 z-20 -mx-4 bg-background px-4 py-3">
+        <div className="mx-auto flex w-full max-w-sm gap-2" role="tablist" aria-label="Tools">
         {TOOLS.map((item) => {
           const selected = tool === item.id;
           return (
@@ -54,6 +55,7 @@ export function StudioShell() {
             </button>
           );
         })}
+        </div>
       </div>
 
       <div hidden={tool !== "qr"}>

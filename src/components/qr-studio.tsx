@@ -454,7 +454,7 @@ export function QrStudio({ contentSeed }: { contentSeed?: { token: number; value
           </div>
         </section>
 
-        <aside className="order-1 self-start max-lg:sticky max-lg:top-3 max-lg:z-10 max-lg:bg-background max-lg:pb-3 lg:sticky lg:top-6 lg:order-2">
+        <aside className="order-1 self-start max-lg:sticky max-lg:top-20 max-lg:z-10 max-lg:bg-background max-lg:pb-3 lg:sticky lg:top-6 lg:order-2">
           <div className="rounded-preview border border-border bg-card p-4" aria-busy={phase === "pending"}>
             <div className="relative mx-auto aspect-square w-48 overflow-hidden rounded-sm border border-border bg-raised lg:w-full">
               {previewUrl && phase === "ready" ? (

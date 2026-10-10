@@ -5,9 +5,13 @@ import { Label } from "@/components/ui/label";
 import { previewPathPrefix } from "@/lib/preview-path-prefix";
 import { createShortLink, listShortLinks, type ShortLink } from "@/lib/short-links";
 
-function publicHref(code: string) {
+function shortPath(code: string) {
   const prefix = previewPathPrefix(window.location.hostname, window.location.pathname) ?? "";
-  return `${window.location.origin}${prefix}/s/${code}`;
+  return `${prefix}/s/${code}`;
+}
+
+function publicHref(code: string) {
+  return `${window.location.origin}${shortPath(code)}`;
 }
 
 export function LinkShortener({ onMakeQr }: { onMakeQr: (url: string) => void }) {
@@ -107,16 +111,19 @@ export function LinkShortener({ onMakeQr }: { onMakeQr: (url: string) => void })
       </p>
 
       {status ? (
-        <div className="mt-2 flex flex-col gap-3 rounded-preview border border-border bg-background p-4 sm:flex-row sm:items-center sm:justify-between">
-          <a className="min-w-0 break-all font-mono text-sm text-accent" href={status}>
+        <div className="mt-2 flex flex-col gap-3 rounded-preview border border-border bg-background p-4">
+          <a
+            className="flex min-h-11 items-center break-all font-mono text-base text-accent underline"
+            href={new URL(status).pathname}
+          >
             {status}
           </a>
-          <div className="flex shrink-0 gap-2">
-            <Button type="button" variant="secondary" onClick={() => void copy(status)}>
+          <div className="flex gap-2">
+            <Button type="button" variant="secondary" className="flex-1" onClick={() => void copy(status)}>
               <Copy className="size-4" aria-hidden />
               {copied === status ? "Copied" : "Copy"}
             </Button>
-            <Button type="button" variant="secondary" onClick={() => onMakeQr(status)}>
+            <Button type="button" variant="secondary" className="flex-1" onClick={() => onMakeQr(status)}>
               <QrCode className="size-4" aria-hidden />
               QR
             </Button>
@@ -133,8 +140,8 @@ export function LinkShortener({ onMakeQr }: { onMakeQr: (url: string) => void })
             const href = publicHref(link.code);
             return (
               <li key={link.code} className="rounded-control border border-border bg-background p-3">
-                <a className="break-all font-mono text-sm text-accent" href={href}>
-                  /s/{link.code}
+                <a className="flex min-h-11 items-center break-all font-mono text-base text-accent underline" href={shortPath(link.code)}>
+                  {href}
                 </a>
                 <p className="mt-1 break-all text-sm text-muted">{link.url}</p>
                 <div className="mt-3 flex gap-2">
